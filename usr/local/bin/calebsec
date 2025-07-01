@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# CalebSec Investigator Suite
+# Author: Caleb
+
+BANNER="
+  ██████╗ █████╗ ██╗     ███████╗███████╗███████╗███████╗
+  ██╔══██╗██╔══██╗██║     ██╔════╝██╔════╝██╔════╝██╔════╝
+  ██████╔╝███████║██║     █████╗  ███████╗█████╗  ███████╗
+  ██╔═══╝ ██╔══██║██║     ██╔══╝  ╚════██║██╔══╝  ╚════██║
+  ██║     ██║  ██║███████╗███████╗███████║███████╗███████║
+  ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚══════╝╚══════╝
+             🕵️‍♂️ CalebSec Investigator Suite
+"
+
+echo "$BANNER"
+echo
+echo "Select an option:"
+echo "1. Analyze Phishing Email (.eml)"
+echo "2. Investigate IP Address (VPN / RDP Detection)"
+read -p "Choice (1 or 2): " CHOICE
+
+if [ "$CHOICE" == "1" ]; then
+  read -p "Enter path to .eml file: " EMAIL_FILE
+  echo
+  echo "[+] Extracting IPs from $EMAIL_FILE..."
+  IPS=$(grep -Eo 'Received: from .* \[([0-9]{1,3}\.){3}[0-9]{1,3}\]' "$EMAIL_FILE" | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}' | uniq)
+  echo "$IPS"
+  echo
+  for IP in $IPS; do
+    echo "========== IP: $IP =========="
+    whois $IP | grep -E 'OrgName|OrgId|CIDR|NetName|Country|inetnum'
+    curl -s ipinfo.io/$IP | jq
+    echo "AbuseIPDB: https://www.abuseipdb.com/check/$IP"
+    echo
+  done
+
+elif [ "$CHOICE" == "2" ]; then
+  read -p "Enter IP address to investigate: " IP
+  echo
+  echo "[+] WHOIS Info:"
+  WHOIS=$(whois $IP)
+  echo "$WHOIS" | grep -E 'OrgName|NetName|Country|CIDR|OrgId'
+  echo
+
+  if echo "$WHOIS" | grep -iqE "amazon|microsoft|azure|digitalocean|ovh|vultr|google|linode"; then
+    echo "⚠️  Likely hosted on a cloud/VPS provider."
+    HOSTED="yes"
+  else
+    echo "✅ Not a known hosting provider."
+    HOSTED="no"
+  fi
+
+  echo
+  echo "[+] Geo Info:"
+  curl -s ipinfo.io/$IP | jq '.ip, .city, .region, .country, .org'
+  echo
+
+  echo "[+] Checking for open RDP port (3389)..."
+  nmap -p 3389 --open --script rdp-enum-encryption $IP | grep -i "3389" && RDP="yes" || RDP="no"
+  echo
+
+  echo "[+] Shodan Check: https://www.shodan.io/host/$IP"
+  echo
+
+  echo "====== Summary ======"
+  if [[ "$HOSTED" == "yes" && "$RDP" == "yes" ]]; then
+    echo "🔥 IP is likely used via RDP from a cloud provider."
+  elif [[ "$RDP" == "yes" ]]; then
+    echo "⚠️  RDP open. May be a jump box."
+  else
+    echo "✅ No obvious RDP usage detected."
+  fi
+  echo "======================"
+
+else
+  echo "Invalid choice. Exiting."
+  exit 1
+fi
