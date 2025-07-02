@@ -30,6 +30,17 @@ CalebSec v1.3 is a professional Command-Line Investigation Toolkit designed for 
    - Auto-formatted with timestamp and metadata
    - Future versions will also export PDF and send Telegram/email alerts
 
+
+ **Developer
+- Name: Caleb Ehichioya
+- Role: Cybersecurity Analyst & Tool Developer
+- Email: admin@calebsec.com
+- GitHub: Caleb-sec
+
+🔐 License
+This tool is released for ethical and educational use only. Redistribution or misuse for malicious purposes is prohibited.
+© 2025 CalebSec. All rights reserved.
+
 ---
 
 ## 📦 Installation Instructions (Kali Linux)
@@ -44,3 +55,4 @@ sudo dpkg -i calebsec-installer.deb
 
 # 3. Launch from anywhere
 calebsec
+
